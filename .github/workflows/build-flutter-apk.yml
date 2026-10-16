@@ -1,0 +1,37 @@
+name: Build Flutter Android APK
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "mobile/**"
+      - ".github/workflows/build-flutter-apk.yml"
+permissions:
+  contents: read
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Create Android Flutter project scaffold
+        run: flutter create --platforms=android --org com.vellai.generated apk_project
+      - name: Install generated app source
+        run: |
+          cp mobile/pubspec.yaml apk_project/pubspec.yaml
+          cp mobile/lib/main.dart apk_project/lib/main.dart
+      - name: Resolve dependencies
+        working-directory: apk_project
+        run: flutter pub get
+      - name: Build release APK
+        working-directory: apk_project
+        run: flutter build apk --release
+      - uses: actions/upload-artifact@v4
+        with:
+          name: flutter-android-apk
+          path: apk_project/build/app/outputs/flutter-apk/app-release.apk
+          if-no-files-found: error
+          retention-days: 14
